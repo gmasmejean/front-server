@@ -98,23 +98,26 @@ angular.module('videoconference',['ui.router','API','EVENTS'])
                         });
                     }],
                     users : ['item', 'item_users_model', 'page_users', 'items', function(item, item_users_model, page_users, items){
+                        var promise = page_users.load(item.datum.page_id, true);
+
                         if(item.datum.participants === items.participants_types.all){
-                            return page_users.load(item.datum.page_id, true).then(function(){
+                            return promise.then(function(){
                                 var users = page_users.pages[item.datum.page_id];
                                 return users.members.concat(users.administrators);
                             });
                         }
                         else{
-                            return item_users_model.queue([item.datum.id]).then(function(){
-                                var users = users.administrators.concat();
-                                item_users_model.list[item.datum.id].datum.forEach(function(itu){
-                                    users.push( itu.user_id );
+                            return promise.then(function(){
+                                return item_users_model.queue([item.datum.id]).then(function(){
+                                    var users = page_users.pages[item.datum.page_id].administrators.concat();
+                                    item_users_model.list[item.datum.id].datum.forEach(function(itu){
+                                        users.push( itu.user_id );
+                                    });
+                                    return users;
                                 });
-                                return users;
                             });
                         }
                     }]
-
                 }
             });
         }
