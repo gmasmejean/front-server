@@ -1,0 +1,13 @@
+<button ng-if="hasCameraOff()" ng-click="hangout.allowUserCamera(user_id)">
+    Allow camera sharing
+</button>
+<button ng-if="hasCameraOff()" ng-click="hangout.allowUserMicrophone(user_id)">
+    Allow microphone sharing
+</button>
+<button ng-if="!hasCameraOff()" ng-click="hangout.stopUserCamera(user_id)">
+    Turn user stream off
+</button>
+<button ng-click="toggleScreen()">
+    {{ screen_action_label }}
+</button>
+<button ng-click="hangout.kick(user_id)">Kick</button>

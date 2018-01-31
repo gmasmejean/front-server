@@ -1,0 +1,53 @@
+
+<div class="hgi-loader" ng-if="ctrl.loading"></div>
+
+<div class="hgi-box" ng-if="!ctrl.loading && ctrl.type===ctrl.types.LIVECLASS">
+    <div class="hgi-head"
+        ng-style="ctrl.course.datum.background|dmsbgurl">
+        <div class="hgi-title">
+            <div>{{ ctrl.item.datum.title }}</div>
+            <div class="hgi-kind">
+                <span class="i-camera"></span>
+                <span>Live Class</span>
+            </div>
+        </div>
+    </div>
+
+    <div class="hgi-info course">
+        <span class="hgi-label">Course</span>
+        <span>{{ ctrl.course.datum.title }}</span>
+    </div>
+    
+    <div class="hgi-info instructors">
+        <span class="hgi-label">Instructors</span>
+        <div class="hgi-list">
+            <div ng-repeat="id in ctrl.instructors"
+                class="n">{{ ctrl.users[id].datum | username }}</div>
+        </div>
+    </div>
+
+    <div class="hgi-info" ng-if="ctrl.item.datum.start_date">
+        <span class="hgi-label" translate>page.start_date</span>
+        <span>{{ ctrl.item.datum.start_date | date: 'medium' }}</span>
+    </div>
+
+    <div class="hgi-info" ng-if="ctrl.item.datum.end_date">
+        <span class="hgi-label" translate>page.due_date</span>
+        <span>{{ ctrl.item.datum.end_date | date: 'medium' }}</span>
+    </div>
+</div>
+
+<div class="hgi-box" ng-if="!ctrl.loading && ctrl.type===ctrl.types.HANGOUT">
+    <div class="hgi-head">
+        <div class="hgi-title">
+            <div>{{ ctrl.getHangoutTitle() }}</div>
+            <div class="hgi-kind">
+                <span class="i-comment"></span>
+                <span>Hangout</span>
+            </div>
+        </div>
+    </div>
+</div>
+
+
+

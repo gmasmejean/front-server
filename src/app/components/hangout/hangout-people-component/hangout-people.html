@@ -1,0 +1,76 @@
+
+<div ng-if="!ctrl.loading">
+    <div class="hgp-head">
+        People ({{ ctrl.getUserCount() }})
+    </div>
+
+    <div class="hgp-list">
+        <div class="hgp-separator">
+            Present ({{ ctrl.connecteds.length }})
+        </div>
+
+        <div class="hgp-user" ng-repeat="id in ctrl.connecteds">
+            <div class="user">
+                <div class="avatar med"
+                    data-letter="{{ users[id].datum|userletter }}"
+                    ng-style="users[id].datum.avatar|dmsbgurl:[80,'m',80]" 
+                    image-onload="{{ users[id].datum.avatar|dmslink:[80,'m',80]}}">
+                    <div class="avatar xs" ng-if="pages[users[id].datum.organization_id].datum"
+                        ng-style="pages[users[id].datum.organization_id].datum.logo|dmsbgurl : [80,'m',80]"></div>   
+                </div>
+                <div class="name">{{ users[id].datum|username:true }}</div>
+                <div class="school">{{ pages[users[id].datum.organization_id].datum.title }}</div>
+            </div>
+            <div class="actions">
+
+                <button class="i-camera" title="Enlarge user stream" 
+                    ng-if="ctrl.isSharingCamera(id)"
+                    ng-click="ctrl.viewCamera(id)"></button>
+
+                <button class="i-screen" title="Enlarge user screen stream" 
+                    ng-if="ctrl.isSharingScreen(id)"
+                    ng-click="ctrl.viewScreen(id)"></button>
+
+                <button class="i-comment" title="Open private conversation"
+                    ng-if="ctrl.showCvnBtn" ng-click="ctrl.openConversation(id)"></button>
+                
+                <div dropdown class="right" ng-if="ctrl.isAdmin">
+                    <button class="i12 i-dots" dropdown-toggle title="Open options">
+                        <span class="for_screen_reader">Open options</span>
+                    </button>
+                    <div dropdown-content>
+                        <hgt-admin-actions hangout="hangout" user-id="id"></hgt-admin-actions>
+                    </div>
+                </div>
+
+            </div>
+        </div>
+        
+        <div class="hgp-separator">
+            Others ({{ ctrl.getOthersTotal() }})
+        </div>
+
+        <div class="hgp-user" ng-repeat="id in ctrl.others">
+            <div class="user" ng-class="{'has-hang-up': ctrl.hasHangUp(id), disconnected:ctrl.isDisconnected(id) }">
+                <div class="avatar med"
+                    data-letter="{{ users[id].datum|userletter }}"
+                    ng-style="users[id].datum.avatar|dmsbgurl:[80,'m',80]" 
+                    image-onload="{{ users[id].datum.avatar|dmslink:[80,'m',80]}}">
+                    <div class="spinner">
+                        <span class="i-hang-up"></span>
+                    </div>
+                    <div class="avatar xs" ng-if="pages[users[id].datum.organization_id].datum"
+                        ng-style="pages[users[id].datum.organization_id].datum.logo|dmsbgurl : [80,'m',80]"></div>
+                </div>
+                <div class="name">{{ users[id].datum|username:true }}</div>
+                <div class="school">{{ pages[users[id].datum.organization_id].datum.title }}</div>
+            </div>
+            <div class="actions">
+                <button class="i-phone" title="Call user" 
+                    ng-if="ctrl.isNotCalling(id)"
+                    ng-click="ctrl.call(id)"></button>
+            </div>
+        </div>
+        
+    </div>
+</div>

@@ -1,0 +1,110 @@
+#call-background{
+    .flexbox();
+    .justify-content(center);
+
+    background: @clr-header;
+    color: @clr-light;
+    height:100%;
+    width:100%;
+}
+
+#call{
+    .flexbox();
+    .flx-direction(column);
+    .justify-content(center);
+    .alignitems(center);
+    margin:0 2rem;
+    .cta{
+        .border-radius( 2rem );
+        span{
+            margin-left: 1rem;
+        }
+    }
+}
+
+#caller{
+    text-align: center;
+    .avatar{
+        margin: 2rem auto;
+    }
+    .title{
+        font-weight: 600;
+        .transition( .3s color );
+    }
+    .hangingup{
+        color: @clr-red;
+    }
+}
+
+.call-separator{
+    margin: 4rem 0 2rem;
+    height: 1px;
+    width: 100%;
+    background: fadeout(@clr-light , 70%);
+}
+
+#called-users{
+    .flexbox();
+    .flx-wrap( wrap );
+    .justify-content(center);
+    margin: 0 0 4rem 0;
+}
+
+.called-status{
+    font-weight: 300;
+    font-size: 1.2rem;
+}
+
+.called-user{
+    .flx-shrink(0);
+    text-align: center;
+    margin:0 2rem;
+
+    & > .avatar{
+        border-color: transparent;
+        margin: 2rem auto;
+    }
+
+    .spinner{
+        position: absolute;
+        border: solid 0.5rem #FFF;
+        .border-radius(50%);
+        top: -.4rem;
+        left: -.4rem;
+        height: 7rem;
+        width : 7rem;
+        animation : spinner-rotate 2s infinite linear;
+        border-left-color: fadeout( @clr-light , 70% );
+        border-right-color: fadeout( @clr-light , 70% );
+        .i-hang-up{
+            display:none;
+        }
+    }
+
+    &.disconnected:not(.has-hang-up){
+        opacity: .7;
+        .spinner{
+            animation: none;
+            border-left-color: @clr-light;
+            border-right-color: @clr-light;
+        }
+    }
+
+    &.has-hang-up{
+        .spinner{
+            border-top-color: @clr-red;
+            border-bottom-color: @clr-red;
+            animation: none;
+            .i-hang-up{
+                display: inline;
+                font-size: 3rem;
+                color: @clr-red;
+                opacity: .8;
+            }
+        }
+    }
+}
+
+.called-name{
+    font-weight: 600;
+}

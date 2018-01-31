@@ -1,0 +1,17 @@
+
+
+<div id="hgt-container" ng-if="!ctrl.loading">
+
+    <div id="hgt-right-col">
+        <hgt-info type="ctrl.type" hangout-id="ctrl.hangout_id" item-id="ctrl.item_id"></hgt-info>
+        <hgt-people hangout="ctrl.hangout"></hgt-people>
+    </div>
+
+    <hgt-streams hangout="ctrl.hangout"></hgt-streams>
+
+    <div id="hgt-right-col">
+        <hgt-actions hangout="ctrl.hangout"></hgt-actions>
+        <hgt-conversations hangout="ctrl.hangout"></hgt-conversations>
+    </div>
+
+</div>

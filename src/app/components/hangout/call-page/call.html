@@ -1,0 +1,49 @@
+<div id="call-background">
+    <div id="call-loading" ng-if="!ctrl.loaded"></div>
+    <div id="call" ng-if="ctrl.loaded">
+
+        <div id="caller">
+            <div class="avatar lrg"
+                ng-style="ctrl.users[ctrl.caller_id].datum.avatar|dmsbgurl : [80,'m',80]" 
+                image-onload="{{ ctrl.users[ctrl.caller_id].datum.avatar | dmslink : [80,'m',80]}}">
+                <div class="spinner"></div>
+                <div class="avatar xs" ng-if="ctrl.users[ctrl.caller_id].datum.organization_id"
+                    ng-style="ctrl.pages[ctrl.users[ctrl.caller_id].datum.organization_id].datum.logo|dmsbgurl : [80,'m',80]"></div>
+            </div>
+            <div class="title" ng-class="{hangingup:ctrl.hangingUp}">{{ ctrl.title }}</div>
+        </div>
+
+        <div class="call-separator"></div>        
+
+        <div id="called-users">
+
+            <div class="called-user" 
+                ng-class="{'has-hang-up': ctrl.hasHangUp(id),disconnected: ctrl.isDisconnected(id) }"
+                ng-repeat="id in ctrl.conversation.datum.users"
+                ng-if="id != ctrl.caller_id">
+                
+                <div class="avatar lrg"
+                    ng-style="ctrl.users[id].datum.avatar|dmsbgurl : [80,'m',80]" 
+                    image-onload="{{ ctrl.users[id].datum.avatar | dmslink : [80,'m',80]}}">
+                    <div class="spinner">
+                        <span class="i-hang-up"></span>
+                    </div>
+                    <div class="avatar xs" ng-if="ctrl.users[id].datum.organization_id"
+                        ng-style="ctrl.pages[ctrl.users[id].datum.organization_id].datum.logo|dmsbgurl : [80,'m',80]"></div>
+                    <div class="cstate" ng-class="{}"></div>
+                </div>
+                <div class="called-name">{{ ctrl.users[id].datum | username }}</div>
+                <div class="called-status">{{ ctrl.getUserCallStatus(id) }}</div>
+
+            </div>
+
+        </div>
+        
+        <div class="ctas">
+            <button title="Hang up" class="cta red i-hang-up"
+                ng-click="ctrl.hangUp()">
+                <span>Hang up</span>
+            </button>
+        </div>
+    </div>
+</div>
