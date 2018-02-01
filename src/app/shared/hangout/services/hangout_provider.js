@@ -7,52 +7,197 @@ angular.module('HANGOUT').factory('hangout_provider',[
             this.type = options.type || cvn_types.HANGOUT;
             this.id = options.hangout_id;
             this.item_id = options.item_id;
-
-            // Hangout tokbox datas... 
+            this.permissions = options.permissions || {};
+            // Hangout tokbox datas...
             this.session = undefined;
             this.user_connections = {};
-
-            this.userOwnStreams = {};
-            this.otherStreams = {};
-            
-
+            this.ownStreams = {};
+            this.userStreams = {};
+            this.streams = {};
         };
 
         hangout.isAvailable = function(){
 
         };
 
-        hangout.prototype.launch = function(){};
-
-        hangout.prototype.leave = function(){};
-
-        hangout.prototype.pause = function(){
-            // Set paused to true
-            // Unsubscribe for all streams.
-            // Unpublish all streams.
+        hangout.prototype.launch = function(){
+            if( this.launching ){
+                return this.launching;
+            }
+            // Init & set launch promise
+            var deferred = $q.defer(), hgt = this;
+            this.launching = deferred.promise;
+            // Get tokbox user token, then try to connect to tokbox session.
+            conversations.getToken(this.id).then(function(data){
+                // Create session.
+                var session = OT.initSession( CONFIG.tokbox_api_key, data.session );
+                // Listen to session events.
+                session.on({
+                    streamCreated:          hgt._onNewStream,
+                    streamDestroyed:        hgt._onRemovedStream,
+                    sessionDisconnected :   hgt._onDisconnected,
+                    connectionCreated:      hgt._onNewConnection,
+                    connectionDestroyed:    hgt._onRemovedConnection,
+                    signal :                hgt._onSignal
+                });
+                // Connect to session.
+                hgt.session.connect( data.token, function( err ){
+                    if( err ){
+                        session.off();
+                        delete( hgt.launching );
+                        deferred.reject();
+                    }
+                    hgt.session = session;
+                    deferred.resolve();
+                });
+            }, function(){ 
+                delete( hgt.launching );
+                deferred.reject(); 
+            });
+            return this.launching;
         };
 
-        hangout.prototype.shareCamera = function(){};
-        hangout.prototype.shareMicrophone = function(){};
-        hangout.prototype.shareScreen = function(){};
+        hangout.prototype.leave = function(){
+            this.session.disconnect();
+            this.session.off();
+        };
 
+        hangout.prototype.pause = function(){
+            if( !this.paused ){
+                // Set paused to true
+                this.paused = {};
+                // Unsubscribe/Unpublish for all streams.
+                Object.keys(this.streams).forEach(function(id){
+                    if( this.streams[id].publisher ){
+                        // Unpublish & save if user was publishing his camera.
+                        if( this.streams[id].stream.videoType === 'camera' ){
+                            this.paused.hasCamera = true;
+                        }
+                        this.unpublish( id );
+                    }else if( this.streams[id].unsubscribe ){
+                        this.streams[id].unsubscribe();
+                    }
+                }.bind(this));
+            }
+        };
+
+        hangout.prototype.resume = function(){
+            if( this.paused ){
+                // Subscribe again to available streams...
+                Object.keys(this.streams).forEach(function(id){
+                    if( this.streams[id].subscribe ){
+                        this.streams[id].subscribe();
+                    }
+                }.bind(this));
+                // If user was publishing, share his camera...
+                if( this.paused.hasCamera ){
+                    this.shareCamera();
+                }
+                this.paused = false;
+            }
+        };
+
+        // Actions methods
+        hangout.prototype.shareCamera = function(){
+            if( this.canShareCamera() ){
+                var stream = this.getSharing('self');
+                if( stream ){
+                    stream.publisher.publishVideo(true);
+                }else if( !this._sharingCamera ){
+                    var stream = {};
+                    this._sharingCamera = true;
+
+                    stream.publisher = OT.initPublisher(null,{
+                        insertDefaultUI: false,
+                        publishVideo: true,
+                        publishAudio: true
+                    });
+
+                    stream.publisher.once({
+                        videoElementCreated: function( event ){
+                            stream.element = event.element;
+                            service.streams.push(stream);
+                            deferred.resolve();
+                        },
+                        streamCreated: function( event ){
+                            events_service.process( hgt_events.tb_stream_published, stream );
+                        },
+                        streamDestroyed: function( event ){
+                            event.preventDefault();
+                            events_service.process( hgt_events.tb_stream_destroyed, stream );
+                        }
+                    });
+
+                    this.streams[stream.id] = stream;
+                    this.ownStreams['self'] = stream;
+                }
+            }
+
+
+            var deferred = $q.defer();
+                stream.publisher = OT.initPublisher( null, options );
+                stream.publisher.on({
+                    videoElementCreated: function( event ){
+                        stream.element = event.element;
+                        service.streams.push(stream);
+                        deferred.resolve();
+                    },
+                    streamCreated: function( event ){
+                        events_service.process( hgt_events.tb_stream_published, stream );
+                    },
+                    streamDestroyed: function( event ){
+                        event.preventDefault();
+                        events_service.process( hgt_events.tb_stream_destroyed, stream );
+                    }
+                }, this);
+                session.publish( stream.publisher, function(error) {
+                    if(error){
+                        session.unpublish(stream.publisher);
+                        stream.publisher = null;
+                        events_service.process( hgt_events.tb_publishing_error, stream );
+                        deferred.reject();
+                    }
+                });
+                return deferred.promise;
+        };
+
+        hangout.prototype.unshareCamera = function(){};
+        hangout.prototype.shareMicrophone = function(){};
+        hangout.prototype.unshareMicrophone = function(){};
+        hangout.prototype.shareScreen = function(){};
+        hangout.prototype.unshareScreen = function(){};
+        hangout.prototype.unpublish = function( stream_id ){};
+        hangout.prototype.raiseHand = function(){};
+        // Checking methods
+        hangout.prototype.getSharing = function(){};
         hangout.prototype.canShareCamera = function(){};
         hangout.prototype.canShareMicrophone = function(){};
         hangout.prototype.canShareScreen = function(){};
-
         hangout.prototype.isUserSharing = function(){};
-
-        // No rights...
-        hangout.prototype.raiseHand = function(){};
-
+        hangout.prototype._hasRight = function(){};
         // Admin methods...
-        hangout.prototype.allowCamera = function(){};
-        hangout.prototype.allowMicrophone = function(){};
-        hangout.prototype.allowScreen = function(){};
-
+        hangout.prototype.allowCamera = function( user_id ){};
+        hangout.prototype.allowMicrophone = function( user_id ){};
+        hangout.prototype.allowScreen = function( user_id ){};
+        hangout.prototype.forceUnpublish = function( stream_id ){};
+        hangout.prototype.kick = function( user_id ){};
+        // Hangout tokbox events handlers...
         hangout.prototype._onNewStream = function(){};
         hangout.prototype._onRemovedStream = function(){};
         hangout.prototype._onNewConnection = function(){};
+        hangout.prototype._onRemovedConnection = function(){};
+        hangout.prototype._onConnected = function(){};
+        hangout.prototype._onDisconnected = function(){};
+        hangout.prototype._onSignal = function(){};
+
+
+
+
+
+
+
+
+
 
 
         var hangout = function(conversation_id){

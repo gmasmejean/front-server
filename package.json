@@ -23,6 +23,7 @@
   },
   "homepage": "https://github.com/THE-STUDNET/front-server#readme",
   "dependencies": {
+    "@opentok/client": "^2.13.0",
     "angular": "^1.6.7",
     "angular-chart.js": "^1.1.1",
     "angular-sanitize": "^1.6.7",
@@ -54,6 +55,9 @@
     "yjs": "^12.3.3"
   },
   "dependencies-build-options": {
+    "@opentok/client": {
+      "src": "dist/js/opentok.js"
+    },
     "angular-translate": {
       "src": "dist/angular-translate.min.js"
     },
