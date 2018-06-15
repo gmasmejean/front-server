@@ -39,16 +39,16 @@ function unauthenticate( data ){
 self.addEventListener('push', function(event){
     var notification;
     try{
-        notification = JSON.parse(event.data);
+        notification = JSON.parse(event.data.text() );
     }catch( e ){
         console.log('PARSE ERROR - Incorrect notification', event);
     }
 
-    if( notificationHandler[notification.type] ){
+    if( notificationHandlers[notification.event] ){
         var promiseChain = getFocusedClient()
             .then( function(client){
-                if( client ){
-                    return notificationHandler[notification.type]( notification.data );
+                if( !client ){
+                    return notificationHandlers[notification.type]( notification );
                 }
             });
         event.waitUntil( promiseChain );
@@ -58,11 +58,26 @@ self.addEventListener('push', function(event){
 });
 
 // Notification handlers
-function messageHandler( data ){}
+function messageHandler( data ){
+    // GET USERS DATAS ( firstname/lastname + avatar )
 
-function postHandler( data ){}
+
+
+
+}
+
+function postHandler( data ){
+
+
+
+}
 
 function contactRequestHandler( data ){
+
+    console.log('CALLED?');
+
+    // GET USER DATAS ( firstname + lastname + avatar );
+
 
     return self.registration.showNotification( "TEST OF NTF!", {
         "body": JSON.stringify( data )
@@ -99,6 +114,24 @@ function contactRequestHandler( data ){
 
 }
 
+// API
+
+function fetchAPI( body ){
+
+    let headers = new Headers(),
+        options = {
+            method: 'POST',
+            headers: headers,
+            mode: 'cors',
+            cache: 'default',
+            redirect: 'follow',
+            body: JSON.stringify(body)
+        };
+
+    headers.append('authorization', auth_token );
+
+    return fetch( api_url, options );
+}
 
 // Utilities
 function getFocusedClient() {
