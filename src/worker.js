@@ -1,10 +1,15 @@
 
-var auth_token = undefined,
+var uid = 1,
+    auth_token = undefined,
+    user_id = undefined,
+    api_url = undefined,
+    dms_url = undefined,
+    badge_url = "assets/img/twic.png",
     messageHandlers = {
         authenticate: authenticate,
         unauthenticate: unauthenticate
     },
-    notificationHandlers = {
+    pushHandlers = {
         message: messageHandler,
         'connection.request': contactRequestHandler,
         post: postHandler      
@@ -13,6 +18,9 @@ var auth_token = undefined,
 // Listening messages.
 self.addEventListener('message', function( event ){
     var message;
+
+    console.log('MSGEVENT', event);
+
     try{
         message = JSON.parse( event.data );
     }catch( e ){
@@ -29,41 +37,103 @@ self.addEventListener('message', function( event ){
 // Message Handlers
 function authenticate( data ){
     auth_token = data.token;
+    api_url = data.api_url;
+    dms_url = data.dms_url;
+    user_id = data.user_id;
 }
 
 function unauthenticate( data ){
+    user_id = undefined;
     auth_token = undefined;
+    api_url = undefined;
+    dms_url = undefined;
 }
 
 // Listening push notifications.
 self.addEventListener('push', function(event){
-    var notification;
+    var push;
     try{
-        notification = JSON.parse(event.data.text() );
+      push = JSON.parse(event.data.text() );
     }catch( e ){
         console.log('PARSE ERROR - Incorrect notification', event);
     }
 
-    if( notificationHandlers[notification.event] ){
+    if( pushHandlers[push.type] ){
         var promiseChain = getFocusedClient()
             .then( function(client){
                 if( !client ){
-                    return notificationHandlers[notification.type]( notification );
+                    return pushHandlers[push.type]( push.data );
                 }
             });
         event.waitUntil( promiseChain );
     }else{
-        console.log('NOTIFICATION TYPE ERROR', event );
+        console.log('PUSH TYPE ERROR', event );
     }
 });
 
-// Notification handlers
+// Push handlers
 function messageHandler( data ){
+    // data exemple => { conversation_id: 73, id: 291, users: [ 5, 6 ], type: 2 }
     // GET USERS DATAS ( firstname/lastname + avatar )
 
+    var promises = [],
+        messages,
+        users,
+        conversation;
 
+    promises.push( getConversation( data.conversation_id ).then(function(d){ conversation = d; }) );
+    promises.push( getUsers( escapeCurrentUser(data.users) ).then(function( d ){ users = d; }) );
+    promises.push( getMessagesFrom( data.conversation_id, data.id ).then(function(d){ messages = d.list; }) );
 
+    return Promise.all( promises ).then(function(){
 
+        var title,
+            body = '',
+            user,
+            users_ids = Object.keys(users),
+            options = {
+                tag: 'message.'+data.conversation_id,
+                badge: badge_url
+            };
+
+        if( data.type === 1 ){
+            user = users[messages[messages.length-1].user_id];  
+            title = 'You have '+messages.length+' new message'+(messages.length>1?'s':'')+' in '+conversation.title+' channel';
+            body = user.firstname+' '+user.lastname+': '+messages[messages.length-1].text;
+        }else if( users_ids.length > 1 ){
+            var max = users_ids.length === 3 ? 2:1;
+
+            title = 'You have '+messages.length+' new messages';
+            user = users[messages[messages.length-1].user_id];
+            body = 'In ';
+            
+            users_ids.some( function( id, index ){
+                if( index === max )
+                    return true;
+                body += users[id].firstname+' '+users[id].lastname+', ';          
+            });
+
+            body = body.slice(0,-2);
+            if( messages.length - max > 1 ){
+                body += ' & '+(messages.length-2)+' other';
+            }
+            body += '\'s conversation';
+
+        }else{
+            user = users[users_ids[0]];
+            title = user.firstname+' '+user.lastname+' sent you '+(messages.length>1? messages.length + 'messages' : 'a message');
+            body = messages[messages.length-1].text;
+        }
+
+        options.body = body;
+        options.icon = dms_url + user.avatar +'-192x192';
+          
+        return self.registration.showNotification( title, options );
+    });
+}
+
+function contactRemoveHandler(){
+    // { notification: { data: 6, event: 'connection.remove' },  users: [ 7 ], type: 'user' }
 }
 
 function postHandler( data ){
@@ -73,49 +143,30 @@ function postHandler( data ){
 }
 
 function contactRequestHandler( data ){
-
-    console.log('CALLED?');
+    /* { notification: 
+          { id: '381',
+          event: 'connection.request',
+          source: { id: 6, name: 'user', data: [Object] },
+          date: '2018-06-18T09:06:54Z',
+          object: { id: 343, name: 'post', data: [Object] } },
+        users: [ 7 ],
+        type: 'user' } */
 
     // GET USER DATAS ( firstname + lastname + avatar );
+    return getUsers( data.source.id ).then( function( user ){
 
-
-    return self.registration.showNotification( "TEST OF NTF!", {
-        "body": JSON.stringify( data )
+        var title = user.firstname+' '+user.lastname+' sent you a connection request',
+            options = {
+                icon: dms_url + user.avatar +'-192x192',
+                tag: 'contact.request.'+user.id,
+                badge: badge_url              
+            };
+            
+        return self.registration.showNotification( title, options );
     });
-
-    /*
-    "//": "Visual Options",
-        "body": "<String>",
-        "icon": "<URL String>", // 64dp => 192px min
-        "image": "<URL String>", // 4:3 ratio & 450dp => 1350px
-        "badge": "<URL String>", // 24px ratio => 72px min
-        "vibrate": "<Array of Integers>",
-        "sound": "<URL String>",
-        "dir": "<String of 'auto' | 'ltr' | 'rtl'>",
-
-        "//": "Behavioural Options",
-        "tag": "<String>",
-        "data": "<Anything>",
-        "requireInteraction": "<boolean>",
-        "renotify": "<Boolean>",
-        "silent": "<Boolean>",
-
-        "//": "Both Visual & Behavioural Options",
-        "actions": [ // Check support ( Chrome & Opera for android only ) && Notification.maxActions
-        //  {
-        //        action: 'atom-action',
-        //        title: 'Atom',
-        //        icon: '/images/demos/action-4-128x128.png'
-        //  } 
-        ],
-
-        "//": "Information Option. No visual affect.",
-        "timestamp": "<Long>"*/
-
 }
 
 // API
-
 function fetchAPI( body ){
 
     let headers = new Headers(),
@@ -130,7 +181,35 @@ function fetchAPI( body ){
 
     headers.append('authorization', auth_token );
 
-    return fetch( api_url, options );
+    return fetch( api_url, options )
+        .then( function(response){ return response.json(); })
+        .then( function(data){ 
+            if( data.error ){
+                throw data.error;
+            }else{
+                return data.result;
+            }
+        });
+}
+
+function getUsers( users_id ){
+    return fetchAPI( jsonrpc2('user.get', {id: users_id}) );
+}
+
+function getConversation( conversation_id ){
+    return fetchAPI( jsonrpc2("conversation.get", { id: conversation_id } ) );
+}
+
+function getMessagesFrom( conversation_id, fromMessageId ){
+    let params = {
+        conversation_id: conversation_id,
+        filter:{
+            c:{'message.id': ">"},
+            o:{'message.id': "DESC"},
+            s: fromMessageId
+        }
+    };
+    return fetchAPI( jsonrpc2('message.getList', params ));
 }
 
 // Utilities
@@ -151,7 +230,18 @@ function getFocusedClient() {
     });
 }
 
+function jsonrpc2( method, params ){
+    return { jsonrpc: "2.0", method: method, params: params, id: uid++};
+}
 
+function escapeCurrentUser( users ){
+    return users.reduce( function( acc, id ){
+        if( user_id != id ){
+            acc.push(id);
+        }
+        return acc;
+    }, []);
+}
 
 
 

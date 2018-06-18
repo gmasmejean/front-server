@@ -67,3 +67,6 @@ CONFIG.signin = {
         url:LINKEDIN_SIGNIN_URL
     }
 };
+
+// VAPID KEY PUBLIC
+CONFIG.webpush_public_key = "BORgE17sW3jYT2hADJ03KkMoEj81VfYaIxmuXr6mIfURtWzgMpiWDZKJCx364qK52zSXIzv3FZuPaJ2GHnzollA";

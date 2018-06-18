@@ -1,5 +1,5 @@
-/*angular.module('service_worker',['EVENTS','STORAGE'])
-    .factory('service_worker',[
+angular.module('service_worker',['EVENTS','STORAGE'])
+    /*.factory('service_worker',[
         function(){
             var workerUrl = '/worker.js';
 
@@ -82,14 +82,64 @@
             }
 
         }
-    ])
+    ])*/
     .run(['events_service','events','session',
         function( events_service, events, session ){
+
+            var service = serviceWorker(),
+                registration;
+
+            events_service.on( events.logout_success, function(){
+                if( registration ){
+                    service.unsubscribeWebPush( registration ).then(function(){
+                        registration = undefined;
+                        service.unregister();
+                    });
+                }
+            });
+
+            events_service.on( events.logged, init);
             
+            if( session.id ){
+                init();
+            }
+
+            function init(){
+                service.register().then(function( reg ){
+                    registration = reg;
+
+                    service.sendMessage('authenticate', {
+                        token: session.token,
+                        user_id: session.id,
+                        api_url: (window.location.protocol||'https:')+ CONFIG.api.url,
+                        dms_url: (window.location.protocol||'https:')+ CONFIG.dms.base_url+CONFIG.dms.paths.datas
+                    });
+
+                    // TO REMOVE LATER: ONLY FOR TEST PURPOSE.
+                    window.sw = reg;
+                    service.subscribeWebPush( registration ).then(function( subscription ){
+
+                        fetch( 'https://local.events.com:8080', {
+                            body: JSON.stringify({
+                                jsonrpc: "2.0", 
+                                method: 'webpush.register', 
+                                params: {
+                                    user: session.id,
+                                    subscription: subscription                                    
+                                }, 
+                                id: Date.now()
+                            }),
+                            method: 'POST'
+                        });
+                        
+                    });
+                    // END TEST
+                });
+            }
         }
     ]);
 
-ANGULAR_MODULES.push('service_worker');*/
+ANGULAR_MODULES.push('service_worker');
 
 
 
@@ -149,9 +199,13 @@ function serviceWorker(){
         },
         getWebPushSubscription: function( registration ){
             return registration.pushManager.getSubscription();
+        },
+        sendMessage: function( type, data ){
+            navigator.serviceWorker.controller.postMessage(JSON.stringify({type:type,data:data}));
         }
     }
 
+    return service;
 }
 
 
@@ -162,7 +216,7 @@ function urlBase64ToUint8Array(base64String) {
       .replace(/_/g, '/');
     
     var rawData = window.atob(base64);
-    return Uint8Array.from( Array.prototype.map.call(s, function(char){ return char.charCodeAt(0); }) );
+    return Uint8Array.from( Array.prototype.map.call( rawData, function(char){ return char.charCodeAt(0); }) );
 }
 
 
